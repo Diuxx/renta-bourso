@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculateur de Rentabilité avec Graphique</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+
+        .calculator {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            margin-bottom: 20px;
+        }
+
+        .calculator h2 {
+            margin: 0 0 20px;
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .result {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #chartContainer {
+            width: 80%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        canvas {
+            background: #fff;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <h2>Calculateur de Rentabilité</h2>
+        <div class="input-group">
+            <label for="monthlyInvestment">Capital investi par mois (€):</label>
+            <input type="number" id="monthlyInvestment" placeholder="Exemple : 200">
+        </div>
+        <div class="input-group">
+            <label for="annualRate">Pourcentage de progression annuelle (%):</label>
+            <input type="number" id="annualRate" placeholder="Exemple : 8">
+        </div>
+        <div class="input-group">
+            <label for="years">Durée d'investissement (années):</label>
+            <input type="number" id="years" placeholder="Exemple : 10">
+        </div>
+        <button onclick="calculateProfit()">Calculer</button>
+        <div class="result" id="result"></div>
+    </div>
+
+    <div id="chartContainer">
+        <canvas id="investmentChart"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let investmentChart; // Variable pour le graphique
+
+        function calculateProfit() {
+            // Récupérer les valeurs des champs
+            const monthlyInvestment = parseFloat(document.getElementById("monthlyInvestment").value);
+            const annualRate = parseFloat(document.getElementById("annualRate").value);
+            const years = parseFloat(document.getElementById("years").value);
+
+            // Vérifier que toutes les valeurs sont valides
+            if (isNaN(monthlyInvestment) || isNaN(annualRate) || isNaN(years) || monthlyInvestment <= 0 || annualRate <= 0 || years <= 0) {
+                document.getElementById("result").innerText = "Veuillez entrer des valeurs valides.";
+                return;
+            }
+
+            // Variables pour le calcul
+            const months = years * 12; // Nombre total de mois
+            const monthlyRate = (1 + annualRate / 100) ** (1 / 12) - 1; // Taux mensuel
+            let totalInvested = 0; // Total des investissements
+            let totalCapital = 0; // Valeur totale avec intérêts composés
+
+            // Données pour le graphique
+            const labels = [];
+            const totalValues = [];
+
+            // Calcul des intérêts composés et collecte des données pour le graphique
+            for (let i = 0; i < months; i++) {
+                totalInvested += monthlyInvestment; // Ajout du capital investi
+                totalCapital = (totalCapital + monthlyInvestment) * (1 + monthlyRate); // Application du taux
+
+                if (i % 12 === 0) {
+                    labels.push(`Année ${i / 12}`);
+                    totalValues.push(totalCapital.toFixed(2));
+                }
+            }
+
+            // Calcul des intérêts générés
+            const interestEarned = totalCapital - totalInvested;
+
+            // Afficher le résultat
+            document.getElementById("result").innerHTML = `
+                <p>Montant total investi : <strong>${totalInvested.toFixed(2)} €</strong></p>
+                <p>Intérêts générés : <strong>${interestEarned.toFixed(2)} €</strong></p>
+                <p>Valeur totale après ${years} ans : <strong>${totalCapital.toFixed(2)} €</strong></p>
+            `;
+
+            // Afficher le graphique
+            renderChart(labels, totalValues);
+        }
+
+        function renderChart(labels, data) {
+            const ctx = document.getElementById('investmentChart').getContext('2d');
+
+            // Détruire l'ancien graphique s'il existe
+            if (investmentChart) {
+                investmentChart.destroy();
+            }
+
+            // Créer un nouveau graphique
+            investmentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Progression de l’investissement (€)',
+                        data: data,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        fill: false,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Années'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Montant (€)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
